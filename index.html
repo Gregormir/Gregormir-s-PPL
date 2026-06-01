@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic PPL Engine (KG)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #e0e0e0; padding: 15px; max-width: 650px; margin: 0 auto; padding-bottom: 80px; }
+        h1 { text-align: center; color: #ff4757; font-size: 24px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        h2 { text-align: center; color: #888; font-size: 13px; margin-top: 0; margin-bottom: 25px; }
+        
+        /* Layout Tabs */
+        .tab-system { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #2c2c2e; padding-bottom: 10px; }
+        .tab-btn { flex: 1; background: #1c1c1e; color: #aaa; border: 1px solid #2c2c2e; padding: 12px 6px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
+        .tab-btn.active { background: #ff4757; color: #fff; border-color: #ff4757; }
+
+        /* Dashboard Metrics */
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .metric-card { background: #1e1e1e; border: 1px solid #2c2c2e; padding: 12px; border-radius: 10px; text-align: center; }
+        .metric-val { font-size: 18px; font-weight: bold; color: #ff4757; margin-bottom: 4px; }
+        .metric-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Form elements */
+        .meta-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input, select, textarea { background: #1e1e1e; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
+        label { display: block; margin-bottom: 5px; font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .workout-selector { margin-bottom: 25px; }
+        
+        /* Cards & Rows */
+        .exercise-card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #ff4757; }
+        .exercise-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+        .exercise-title { font-weight: bold; font-size: 16px; color: #fff; }
+        .exercise-target { font-size: 12px; color: #888; }
+        .history-snippet { font-size: 12px; color: #ffa502; font-style: italic; margin-bottom: 12px; display: block; }
+        
+        .set-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .set-label { width: 45px; font-size: 14px; color: #aaa; }
+        .input-group { display: flex; align-items: center; gap: 5px; flex: 1; }
+        .input-group span { font-size: 13px; color: #666; }
+        
+        /* Dynamic Set Actions Counter */
+        .set-actions { display: flex; gap: 8px; margin: 12px 0; }
+        .action-link { background: #2c2c2e; border: 1px solid #3a3a3c; color: #e0e0e0; font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
+        .action-link.add { border-color: #2ed573; color: #2ed573; }
+        .action-link.remove { border-color: #ff4757; color: #ff4757; }
+
+        .goal-section { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #341f97; }
+        .past-goals-box { background: #151517; padding: 10px; border-radius: 6px; font-size: 13px; color: #a4b0be; border-left: 2px solid #57606f; margin-bottom: 15px; line-height: 1.4; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 25px; }
+        .btn { background: #ff4757; color: white; border: none; padding: 15px; font-size: 15px; font-weight: bold; border-radius: 8px; flex: 1; cursor: pointer; text-transform: uppercase; }
+        .btn.secondary { background: #2f3542; border: 1px solid #57606f; color: #fff; }
+        .btn.danger { background: #b33939; border: 1px solid #8c2d2d; color: #fff; }
+        .btn:hover { opacity: 0.9; }
+        
+        /* Logs History Display */
+        .history-control-panel { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #1e1e1e; padding: 15px; border-radius: 12px; border: 1px solid #2c2c2e; }
+        .panel-row { display: flex; gap: 10px; width: 100%; }
+        .history-list { display: flex; flex-direction: column; gap: 15px; }
+        .history-item { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 10px; padding: 15px; }
+        .history-summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .history-date { font-weight: bold; color: #ff4757; }
+        .history-type { font-size: 14px; color: #fff; }
+        .history-details { margin-top: 15px; border-top: 1px dashed #333; padding-top: 12px; font-family: monospace; font-size: 13px; color: #a4b0be; white-space: pre-wrap; display: none; }
+        .history-details.open { display: block; }
+        .delete-btn { background: none; border: none; color: #ff4757; cursor: pointer; font-size: 12px; text-decoration: underline; padding: 0; margin-top: 10px; }
+        .empty-state { text-align: center; color: #666; padding: 40px 20px; font-style: italic; }
+        
+        /* Exercise Tips Design */
+        .tips-container { display: flex; flex-direction: column; gap: 20px; }
+        .tips-group { background: #1e1e1e; border-radius: 12px; padding: 15px; border-top: 3px solid #57606f; }
+        .tips-group.push-border { border-top-color: #ff4757; }
+        .tips-group.pull-border { border-top-color: #ffa502; }
+        .tips-group.legs-border { border-top-color: #2ed573; }
+        .group-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; text-transform: uppercase; color: #fff; border-bottom: 1px solid #2c2c2e; padding-bottom: 5px; }
+        .tip-item { margin-bottom: 12px; }
+        .tip-item:last-child { margin-bottom: 0; }
+        .tip-ex-name { font-weight: bold; color: #e0e0e0; font-size: 14px; display: block; margin-bottom: 2px; }
+        .tip-text { color: #a4b0be; font-size: 13px; line-height: 1.4; margin: 0; padding-left: 10px; border-left: 2px solid #333; }
+
+        /* Floating Rest Timer */
+        .timer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #1c1c1e; border-top: 2px solid #2c2c2e; padding: 12px; display: flex; align-items: center; justify-content: space-between; max-width: 650px; margin: 0 auto; box-sizing: border-box; z-index: 1000; }
+        .timer-display { font-family: monospace; font-size: 20px; font-weight: bold; color: #fff; min-width: 75px; }
+        .timer-display.alerting { color: #ff4757; animation: blink 1s infinite; }
+        .timer-buttons { display: flex; gap: 6px; }
+        .timer-btn { background: #2f3542; color: white; border: 1px solid #57606f; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .timer-btn.stop { background: #b33939; border-color: #8c2d2d; }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+        #fileImport { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Workout Tracker</h1>
+    <h2>Custom 6-Day PPL & Local Log (Dynamic Sets)</h2>
+
+    <!-- REAL-TIME ANALYTICS DASHBOARD -->
+    <div class="dashboard">
+        <div class="metric-card">
+            <div class="metric-val" id="dashTotal">0</div>
+            <div class="metric-lbl">Total Logs</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-val" style="font-size:13px; padding-top:4px; color:#ffa502;" id="dashRatio">0/0/0</div>
+            <div class="metric-lbl">Push/Pull/Legs</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-val" style="color:#2ed573;" id="dashStreak">0d</div>
+            <div class="metric-lbl">Current Streak</div>
+        </div>
+    </div>
+
+    <div class="tab-system">
+        <button class="tab-btn active" id="tabTrack" onclick="switchView('track')">📝 Track</button>
+        <button class="tab-btn" id="tabHistory" onclick="switchView('history')">📚 History</button>
+        <button class="tab-btn" id="tabTips" onclick="switchView('tips')">💡 Guide</button>
+    </div>
+
+    <!-- VIEW 1: TRACKING FORM -->
+    <div id="trackView">
+        <div class="meta-group">
+            <div style="flex: 2;">
+                <label for="logDate">Date</label>
+                <input type="date" id="logDate">
+            </div>
+            <div style="flex: 1;">
+                <label for="energy">Energy</label>
+                <select id="energy">
+                    <option value="5">5/5 🔥</option>
+                    <option value="4" selected>4/5 👍</option>
+                    <option value="3">3/5 😐</option>
+                    <option value="2">2/5 🪫</option>
+                    <option value="1">1/5 ❌</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="workout-selector">
+            <label for="workoutType">Select Split Day</label>
+            <select id="workoutType" onchange="renderWorkout()">
+                <option value="push">Day 1: PUSH (Chest / Shoulders / Tris)</option>
+                <option value="pull">Day 2: PULL (Back / Rear Delts / Bis)</option>
+                <option value="legs">Day 3: LEGS (Quads / Hams / Calves)</option>
+            </select>
+        </div>
+
+        <!-- TARGET BOX FOR PREVIOUS OBJECTIVES -->
+        <div id="pastGoalsContainer" style="display:none;">
+            <label>Directives Carried Over From Last Session</label>
+            <div class="past-goals-box" id="pastGoalsDisplay"></div>
+        </div>
+
+        <div id="exerciseContainer"></div>
+
+        <div class="goal-section">
+            <label for="customGoals">Next Session Goals & Directives</label>
+            <textarea id="customGoals" rows="3" placeholder="Write your personalized targets for your next workout sequence here..."></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" onclick="saveWorkoutLog()">💾 Save to Journal</button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: LOG HISTORY -->
+    <div id="historyView" style="display: none;">
+        <div class="history-control-panel">
+            <div class="panel-row">
+                <button class="btn secondary" onclick="downloadBackupFile()">📤 Export Backup</button>
+                <button class="btn secondary" onclick="triggerImport()">📥 Import Backup</button>
+                <input type="file" id="fileImport" accept=".txt" onchange="importBackupFile(event)">
+            </div>
+            <button class="btn danger" style="padding: 8px; font-size: 11px; margin-top: 5px;" onclick="clearEntireDatabase()">⚠️ Reset App Memory</button>
+        </div>
+        <div id="historyContainer" class="history-list"></div>
+    </div>
+
+    <!-- VIEW 3: EXERCISE TIPS REFERENCE -->
+    <div id="tipsView" style="display: none;">
+        <div class="tips-container">
+            
+            <div class="tips-group push-border">
+                <div class="group-title" style="color: #ff4757;">Push Day Mechanics</div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Flat DB Bench Press</span>
+                    <p class="tip-text">Keep your shoulder blades pinched tightly into the bench. Retract and depress your scapula to shield your rotator cuffs, and maintain a subtle arch in your lower back for stable leg drive.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Arnold Press</span>
+                    <p class="tip-text">Begin with palms completely facing you at chin level. Rotate smoothly as you drive upward, finishing the press with palms facing out. Avoid letting your elbows flare wide out at the bottom to protect the anterior delts.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Dips</span>
+                    <p class="tip-text">Lean your torso forward slightly to isolate chest engagement. Keep your elbows tucked near your ribs rather than flaring sideways. Target a clean 90-degree break at the elbow structure before pressing back up.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Lateral Raises</span>
+                    <p class="tip-text">Lean your upper body slightly forward. Control the weights with your elbows guiding the upward path. Keep your hands relaxed to reduce forearm tension, and avoid shrugging the traps at peak contraction.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Skullcrushers</span>
+                    <p class="tip-text">Angle your upper arms back slightly (roughly 15 degrees behind your head) instead of perfectly perpendicular to the ceiling. This keeps constant, uninterrupted tension running directly through the triceps long head.</p>
+                </div>
+            </div>
+
+            <div class="tips-group pull-border">
+                <div class="group-title" style="color: #ffa502;">Pull Day Mechanics</div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Single-Arm DB Row</span>
+                    <p class="tip-text">Drive the movement back with your elbow toward your hip, avoiding an up-and-down sawing pattern. Keep your shoulder parallel to the floor at all times, and prevent twisting your spine at peak extension.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Pullovers</span>
+                    <p class="tip-text">Lie flat on the bench to maximize core stability. Maintain a fixed, slight bend in your elbows throughout the arc. Focus strictly on pulling from your armpits to force the lats to initiate the contractive load.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Rear Delt Flyes</span>
+                    <p class="tip-text">Hinge deep at your hips so your torso sits nearly parallel with the ground. Lead the raise with your pinky fingers pointing up. Focus on expanding wide to the sides, minimizing mid-back shoulder blade squeezing.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Bicep Curls</span>
+                    <p class="tip-text">Pin your elbows firmly against your ribs. Suppinate your wrist (rotate your palm upward toward the ceiling) completely as you ascend, and squeeze the target apex hard without letting your shoulders swing forward.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Hammer Curls</span>
+                    <p class="tip-text">Keep your hands fixed in a neutral palms-in position. This target builds the brachialis and brachioradialis muscles. Control the eccentric phase completely; avoid bouncing the dumbbells at the bottom of the rep loop.</p>
+                </div>
+            </div>
+
+            <div class="tips-group legs-border">
+                <div class="group-title" style="color: #2ed573;">Leg Day Mechanics</div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Conventional Barbell Deadlift</span>
+                    <p class="tip-text">Set up with the bar slicing perfectly over mid-foot. Drop your hips back until shins make direct contact with the steel. Brace your abdominal wall hard, lock your lats back, and push through your feet to break ground.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Barbell Zercher Squat</span>
+                    <p class="tip-text">Cradle the barbell deeply within the crook of your elbows. Clasp your hands tightly together. Brace your core against the front-loaded placement to stay completely upright, preventing hip flare or spinal collapse.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Bulgarian Split Squats</span>
+                    <p class="tip-text">Step your working leg forward, resting your rear shoelaces flat on an elevated bench. Drop your weight down and slightly back. Keep your front knee tracing straight over your pinky toe to maintain knee joint tracking safety.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">DB Leg Curls</span>
+                    <p class="tip-text">Secure a dumbbell tightly between your arches while lying face down on a flat bench. Keep your hips pinned flat against the padding to avoid hip hiking. Squeeze your hamstrings at the top of the range.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Standing Calf Raises</span>
+                    <p class="tip-text">Execute each movement from an elevated ledge to unlock a deep stretch at the heel drop. Hold the bottom extension for 1 full second to kill elastic tendon momentum, then explode up onto your big toes.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FLOATING REST TIMER MODULE -->
+    <div class="timer-bar">
+        <div style="display:flex; flex-direction:column;">
+            <span style="font-size:10px; color:#aaa; text-transform:uppercase; font-weight:bold;">Rest Timer</span>
+            <div class="timer-display" id="timerClock">00:00</div>
+        </div>
+        <div class="timer-buttons">
+            <button class="timer-btn" onclick="startTimer(90)">90s</button>
+            <button class="timer-btn" onclick="startTimer(180)">3m</button>
+            <button class="timer-btn" onclick="startTimer(300)">5m</button>
+            <button class="timer-btn stop" onclick="resetTimer()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('logDate').valueAsDate = new Date();
+
+        const workouts = {
+            push: [
+                { name: "Flat DB Bench Press", target: "3-4 sets x 6-10 reps", defaultSets: 4 },
+                { name: "Arnold Press", target: "3 sets x 8-12 reps", defaultSets: 3 },
+                { name: "Dips", target: "3 sets x 8-12 reps", defaultSets: 3 },
+                { name: "DB Lateral Raises", target: "3-4 sets x 12-15 reps", defaultSets: 4 },
+                { name: "DB Skullcrushers", target: "3 sets x 10-12 reps", defaultSets: 3 }
+            ],
+            pull: [
+                { name: "Single-Arm DB Row", target: "3-4 sets x 8-10 reps", defaultSets: 4 },
+                { name: "DB Pullovers", target: "3 sets x 10-12 reps", defaultSets: 3 },
+                { name: "DB Rear Delt Flyes", target: "3 sets x 12-15 reps", defaultSets: 3 },
+                { name: "DB Bicep Curls", target: "3 sets x 8-12 reps", defaultSets: 3 },
+                { name: "DB Hammer Curls", target: "3 sets x 10-12 reps", defaultSets: 3 }
+            ],
+            legs: [
+                { name: "Conventional Barbell Deadlift", target: "3 sets x 5 reps", defaultSets: 3 },
+                { name: "Barbell Zercher Squat", target: "3 sets x 6-10 reps", defaultSets: 3 },
+                { name: "Bulgarian Split Squats", target: "3 sets x 8-12 reps", defaultSets: 3 },
+                { name: "DB Leg Curls", target: "3 sets x 10-12 reps", defaultSets: 3 },
+                { name: "Standing Calf Raises", target: "3-4 sets x 15-20 reps", defaultSets: 4 }
+            ]
+        };
+
+        // Track how many sets are currently rendered for each exercise card at runtime
+        let activeSetsTrackingMap = [];
+
+        // --- GLOBAL TIMER STATE ---
+        let timerInterval = null;
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            document.getElementById('timerClock').classList.remove('alerting');
+            
+            let timeLeft = seconds;
+            updateTimerDisplay(timeLeft);
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay(timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timerClock').textContent = "TIME UP";
+                    document.getElementById('timerClock').classList.add('alerting');
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timerClock').classList.remove('alerting');
+            document.getElementById('timerClock').textContent = "00:00";
+        }
+
+        function updateTimerDisplay(secs) {
+            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const s = (secs % 60).toString().padStart(2, '0');
+            document.getElementById('timerClock').textContent = `${m}:${s}`;
+        }
+
+        // --- CORE APPLICATION VIEWS & LOGIC ---
+        function switchView(view) {
+            document.getElementById('trackView').style.display = 'none';
+            document.getElementById('historyView').style.display = 'none';
+            document.getElementById('tipsView').style.display = 'none';
+            
+            document.getElementById('tabTrack').className = 'tab-btn';
+            document.getElementById('tabHistory').className = 'tab-btn';
+            document.getElementById('tabTips').className = 'tab-btn';
+
+            if (view === 'track') {
+                document.getElementById('trackView').style.display = 'block';
+                document.getElementById('tabTrack').className = 'tab-btn active';
+                renderWorkout(); 
+            } else if (view === 'history') {
+                document.getElementById('historyView').style.display = 'block';
+                document.getElementById('tabHistory').className = 'tab-btn active';
+                loadHistory();
+            } else if (view === 'tips') {
+                document.getElementById('tipsView').style.display = 'block';
+                document.getElementById('tabTips').className = 'tab-btn active';
+            }
+        }
+
+        // Deep scanner engine for extracting specific structural history lines
+        function findPreviousPerformance(exerciseName) {
+            const rawHistory = localStorage.getItem('localGymJournal');
+            if(!rawHistory) return null;
+            const entries = JSON.parse(rawHistory);
+            
+            for(let entry of entries) {
+                if(entry.body && entry.body.includes(exerciseName)) {
+                    const lines = entry.body.split('\n');
+                    let performanceString = [];
+                    let foundExercise = false;
+                    
+                    for(let line of lines) {
+                        if(line.trim().startsWith(exerciseName)) {
+                            foundExercise = true;
+                            continue;
+                        }
+                        if(foundExercise) {
+                            if(line.trim().startsWith("Set")) {
+                                performanceString.push(line.trim());
+                            } else if(line.trim() === "" || line.trim().startsWith("Note:") || line.trim().startsWith("Next Session")) {
+                                break; 
+                            }
+                        }
+                    }
+                    if(performanceString.length > 0) {
+                        return { date: formatDisplayDate(entry.date), stats: performanceString.join(' | ') };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function loadCarriedOverGoals() {
+            const rawHistory = localStorage.getItem('localGymJournal');
+            const displayBox = document.getElementById('pastGoalsDisplay');
+            const container = document.getElementById('pastGoalsContainer');
+            
+            if(!rawHistory) {
+                container.style.display = 'none';
+                return;
+            }
+            const entries = JSON.parse(rawHistory);
+            if(entries.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // Find the most recent entry that has clear listed goals
+            for(let entry of entries) {
+                if(entry.body && entry.body.includes("Next Session Goals:\n")) {
+                    const parts = entry.body.split("Next Session Goals:\n");
+                    const savedGoals = parts[1] ? parts[1].trim() : "";
+                    
+                    if(savedGoals && savedGoals !== "None listed.") {
+                        displayBox.textContent = `[From ${formatDisplayDate(entry.date)}]: ${savedGoals}`;
+                        container.style.display = 'block';
+                        return;
+                    }
+                }
+            }
+            container.style.display = 'none';
+        }
+
+        function renderWorkout() {
+            const type = document.getElementById('workoutType').value;
+            const container = document.getElementById('exerciseContainer');
+            container.innerHTML = '';
+
+            loadCarriedOverGoals();
+            calculateMetrics();
+
+            activeSetsTrackingMap = [];
+
+            workouts[type].forEach((ex, exIdx) => {
+                // Set initial counter map bounds tracking arrays
+                activeSetsTrackingMap.push(ex.defaultSets);
+
+                let card = document.createElement('div');
+                card.className = 'exercise-card';
+                card.id = `ex_card_${exIdx}`;
+                
+                const pastMatch = findPreviousPerformance(ex.name);
+                const pastPerformanceHtml = pastMatch 
+                    ? `<span class="history-snippet">Last Performance (${pastMatch.date}): ${pastMatch.stats}</span>` 
+                    : `<span class="history-snippet" style="color:#666;">No historical records found for this lift.</span>`;
+
+                let html = `
+                    <div class="exercise-header">
+                        <span class="exercise-title" id="ex_title_${exIdx}">${ex.name}</span>
+                        <span class="exercise-target">${ex.target}</span>
+                    </div>
+                    ${pastPerformanceHtml}
+                    
+                    <!-- Dynamic Rows Container Box Wrap -->
+                    <div id="ex_sets_box_${exIdx}">`;
+
+                for(let s = 1; s <= ex.defaultSets; s++) {
+                    html += makeSetRowHtml(exIdx, s);
+                }
+
+                html += `</div>
+                    
+                    <!-- Incremental Modifier Trigger Actions Line -->
+                    <div class="set-actions">
+                        <button class="action-link add" onclick="addSetToExercise(${exIdx})">[+ Add Set]</button>
+                        <button class="action-link remove" onclick="removeSetFromExercise(${exIdx})">[- Remove Last]</button>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <input type="text" id="ex_${exIdx}_note" placeholder="Form notes or RIR targets...">
+                    </div>
+                `;
+
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+            document.getElementById('customGoals').value = '';
+        }
+
+        function makeSetRowHtml(exIdx, setNum) {
+            return `
+                <div class="set-row" id="ex_${exIdx}_row_${setNum}">
+                    <span class="set-label">Set ${setNum}:</span>
+                    <div class="input-group">
+                        <input type="number" step="0.25" id="ex_${exIdx}_w_${setNum}" placeholder="kg">
+                        <span>kg</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="ex_${exIdx}_r_${setNum}" placeholder="reps">
+                        <span>reps</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addSetToExercise(exIdx) {
+            const currentCount = activeSetsTrackingMap[exIdx];
+            if (currentCount >= 10) {
+                alert("Dynamic maximum ceiling reached (Max 10 sets per individual lift structure).");
+                return;
+            }
+            
+            const nextSetNum = currentCount + 1;
+            const setsBox = document.getElementById(`ex_sets_box_${exIdx}`);
+            
+            // Build temporary node container to safely append new markup string line
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = makeSetRowHtml(exIdx, nextSetNum);
+            setsBox.appendChild(tempDiv.firstElementChild);
+            
+            activeSetsTrackingMap[exIdx] = nextSetNum;
+        }
+
+        function removeSetFromExercise(exIdx) {
+            const currentCount = activeSetsTrackingMap[exIdx];
+            if (currentCount <= 1) {
+                alert("Minimum structural limit hit. Every exercise requires at least 1 set.");
+                return;
+            }
+            
+            const targetRow = document.getElementById(`ex_${exIdx}_row_${currentCount}`);
+            if (targetRow) {
+                targetRow.remove();
+            }
+            
+            activeSetsTrackingMap[exIdx] = currentCount - 1;
+        }
+
+        function generatePlainString() {
+            const type = document.getElementById('workoutType').value;
+            const energy = document.getElementById('energy').value;
+            const userGoals = document.getElementById('customGoals').value;
+
+            let stringOut = `Energy Rating: ${energy}/5\n\n`;
+
+            workouts[type].forEach((ex, exIdx) => {
+                stringOut += `${ex.name}\n`;
+                const activeTotalSets = activeSetsTrackingMap[exIdx];
+                
+                for(let s = 1; s <= activeTotalSets; s++) {
+                    const w = document.getElementById(`ex_${exIdx}_w_${s}`).value || '0';
+                    const r = document.getElementById(`ex_${exIdx}_r_${s}`).value || '0';
+                    stringOut += `  Set ${s}: ${w} kg x ${r} reps\n`;
+                }
+                const note = document.getElementById(`ex_${exIdx}_note`).value;
+                if(note) {
+                    stringOut += `  Note: ${note}\n`;
+                }
+                stringOut += `\n`;
+            });
+
+            stringOut += `Next Session Goals:\n`;
+            stringOut += userGoals.trim() !== "" ? userGoals : "None listed.";
+            return stringOut;
+        }
+
+        function saveWorkoutLog() {
+            const dateValue = document.getElementById('logDate').value;
+            const selectEl = document.getElementById('workoutType');
+            const typeText = selectEl.options[selectEl.selectedIndex].text.split('(')[0].trim();
+            const compiledText = generatePlainString();
+
+            if(!dateValue) {
+                alert("Please select a date first!");
+                return;
+            }
+
+            const newRecord = {
+                id: Date.now(),
+                date: dateValue,
+                label: typeText,
+                body: compiledText
+            };
+
+            let rawHistory = localStorage.getItem('localGymJournal');
+            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+            
+            historyArray.unshift(newRecord); 
+            localStorage.setItem('localGymJournal', JSON.stringify(historyArray));
+
+            alert("Session successfully logged!");
+            calculateMetrics();
+            switchView('history');
+        }
+
+        function loadHistory() {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '';
+            
+            let rawHistory = localStorage.getItem('localGymJournal');
+            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+
+            if(historyArray.length === 0) {
+                container.innerHTML = '<div class="empty-state">No saved entries found. Log a session to start your journal!</div>';
+                return;
+            }
+
+            historyArray.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'history-item';
+                
+                itemDiv.innerHTML = `
+                    <div class="history-summary" onclick="toggleDetails(${item.id})">
+                        <div>
+                            <span class="history-date">${formatDisplayDate(item.date)}</span>
+                            <span style="margin: 0 8px; color: #444;">•</span>
+                            <span class="history-type">${item.label}</span>
+                        </div>
+                        <span style="color:#666; font-size:12px;">🔻 View Data</span>
+                    </div>
+                    <div id="details_${item.id}" class="history-details">${item.body}<br><button class="delete-btn" onclick="deleteItem(${item.id}, event)">Delete Entry</button>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function toggleDetails(id) {
+            const target = document.getElementById(`details_${id}`);
+            target.classList.toggle('open');
+        }
+
+        function deleteItem(id, event) {
+            event.stopPropagation(); 
+            if(!confirm("Are you sure you want to permanently erase this entry?")) return;
+            
+            let rawHistory = localStorage.getItem('localGymJournal');
+            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+            
+            historyArray = historyArray.filter(item => item.id !== id);
+            localStorage.setItem('localGymJournal', JSON.stringify(historyArray));
+            loadHistory();
+            calculateMetrics();
+        }
+
+        function calculateMetrics() {
+            let rawHistory = localStorage.getItem('localGymJournal');
+            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+            
+            document.getElementById('dashTotal').textContent = historyArray.length;
+
+            let pushCount = 0, pullCount = 0, legsCount = 0;
+            historyArray.forEach(item => {
+                const text = item.label.toLowerCase();
+                if(text.includes('push')) pushCount++;
+                else if(text.includes('pull')) pullCount++;
+                else if(text.includes('legs')) legsCount++;
+            });
+            document.getElementById('dashRatio').textContent = `${pushCount}/${pullCount}/${legsCount}`;
+
+            if(historyArray.length === 0) {
+                document.getElementById('dashStreak').textContent = "0d";
+                return;
+            }
+
+            let uniqueDates = [...new Set(historyArray.map(item => item.date))];
+            uniqueDates.sort((a,b) => new Date(b) - new Date(a)); 
+
+            let streak = 0;
+            let today = new Date();
+            today.setHours(0,0,0,0);
+            
+            let latestWorkoutDate = new Date(uniqueDates[0]);
+            latestWorkoutDate.setHours(0,0,0,0);
+
+            let msDiff = today - latestWorkoutDate;
+            let daysSinceLastWorkout = msDiff / (1000 * 60 * 60 * 24);
+
+            if(daysSinceLastWorkout <= 2) { 
+                streak = 1;
+                for(let i = 0; i < uniqueDates.length - 1; i++) {
+                    let dateCurrent = new Date(uniqueDates[i]);
+                    let dateNext = new Date(uniqueDates[i+1]);
+                    dateCurrent.setHours(0,0,0,0);
+                    dateNext.setHours(0,0,0,0);
+
+                    let diffTime = dateCurrent - dateNext;
+                    let diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                    if(diffDays <= 2) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            document.getElementById('dashStreak').textContent = `${streak}d`;
+        }
+
+        function clearEntireDatabase() {
+            if(!confirm("CRITICAL WARNING:\nThis will permanently destroy ALL workout entries saved in this browser. Are you absolutely certain?")) return;
+            localStorage.removeItem('localGymJournal');
+            calculateMetrics();
+            loadHistory();
+        }
+
+        function downloadBackupFile() {
+            let rawHistory = localStorage.getItem('localGymJournal');
+            if(!rawHistory || JSON.parse(rawHistory).length === 0) {
+                alert("Your journal is empty! Nothing to back up.");
+                return;
+            }
+
+            const blob = new Blob([rawHistory], { type: 'text/plain' });
+            const tempLink = document.createElement('a');
+            tempLink.download = `ppl_journal_backup_kg.txt`;
+            tempLink.href = window.URL.createObjectURL(blob);
+            tempLink.style.display = 'none';
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+        }
+
+        function triggerImport() {
+            document.getElementById('fileImport').click();
+        }
+
+        function importBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                try {
+                    const parsedData = JSON.parse(contents);
+                    if (!Array.isArray(parsedData)) throw new Error();
+
+                    if(confirm(`Found ${parsedData.length} workout logs in this file. Would you like to merge them with your current browser history?`)) {
+                        let existingRaw = localStorage.getItem('localGymJournal');
+                        let existingArray = existingRaw ? JSON.parse(existingRaw) : [];
+                        
+                        let mergedMap = new Map();
+                        existingArray.forEach(item => mergedMap.set(item.id, item));
+                        parsedData.forEach(item => mergedMap.set(item.id, item));
+                        
+                        let finalMergedArray = Array.from(mergedMap.values());
+                        finalMergedArray.sort((a, b) => b.id - a.id);
+
+                        localStorage.setItem('localGymJournal', JSON.stringify(finalMergedArray));
+                        alert("Data backup successfully restored and merged!");
+                        calculateMetrics();
+                        loadHistory();
+                    }
+                } catch (err) {
+                    alert("Error: This file is invalid or corrupted. Make sure you select an untouched backup file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function formatDisplayDate(dateStr) {
+            if(!dateStr) return '';
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+        }
+
+        renderWorkout();
+        calculateMetrics();
+    </script>
+</body>
+</html>
