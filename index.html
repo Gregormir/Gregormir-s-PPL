@@ -23,7 +23,8 @@
 
         /* Form elements */
         .meta-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
-        .meta-row { display: flex; gap: 10px; }
+        .meta-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+        .meta-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, textarea { background: #1e1e1e; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
         label { display: block; margin-bottom: 5px; font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
         .workout-selector { margin-bottom: 25px; }
@@ -94,7 +95,7 @@
         #fileImport { display: none; }
     </style>
 </head>
-<body oninput="saveFormState()" onchange="saveFormState()">
+<body oninput="debouncedSaveFormState()" onchange="debouncedSaveFormState()">
 
     <h1>Workout Tracker</h1>
     <h2>Custom 6-Day PPL & Local Log (Dynamic Sets)</h2>
@@ -127,12 +128,12 @@
 
     <div id="trackView">
         <div class="meta-group">
-            <div class="meta-row">
-                <div style="flex: 2;">
+            <div class="meta-grid">
+                <div>
                     <label for="logDate">Date</label>
                     <input type="date" id="logDate">
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <label for="energy">Energy</label>
                     <select id="energy">
                         <option value="5">5/5 🔥</option>
@@ -144,12 +145,12 @@
                 </div>
             </div>
             
-            <div class="meta-row">
-                <div style="flex: 1;">
+            <div class="meta-split">
+                <div>
                     <label for="startTime">Start Time</label>
                     <input type="time" id="startTime">
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <label for="endTime">End Time</label>
                     <input type="time" id="endTime">
                 </div>
@@ -184,12 +185,12 @@
 
     <div id="cardioView" style="display: none;">
         <div class="meta-group">
-            <div class="meta-row">
-                <div style="flex: 2;">
+            <div class="meta-grid">
+                <div>
                     <label for="cardioDate">Date</label>
                     <input type="date" id="cardioDate">
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <label for="cardioType">Activity</label>
                     <select id="cardioType">
                         <option value="Walk">Walk 🚶</option>
@@ -198,12 +199,12 @@
                     </select>
                 </div>
             </div>
-            <div class="meta-row">
-                <div style="flex: 1;">
+            <div class="meta-split">
+                <div>
                     <label for="cardioStartTime">Start Time</label>
                     <input type="time" id="cardioStartTime">
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <label for="cardioEndTime">End Time</label>
                     <input type="time" id="cardioEndTime">
                 </div>
@@ -218,7 +219,7 @@
             <div class="set-row" style="margin-top: 15px;">
                 <span class="set-label" style="width: 75px;">Distance:</span>
                 <div class="input-group">
-                    <input type="number" step="0.01" id="cardioDistance" placeholder="0.00">
+                    <input type="number" step="0.01" id="cardioDistance" inputmode="decimal" placeholder="0.00">
                 </div>
                 <div class="input-group" style="max-width: 90px;">
                     <select id="cardioUnit">
@@ -368,6 +369,7 @@
         document.getElementById('logDate').valueAsDate = new Date();
         document.getElementById('cardioDate').valueAsDate = new Date();
 
+        // FIXED: Re-aligned the exercises structure configuration with required targets 
         const workouts = {
             push: [
                 { name: "Flat DB Bench Press", target: "3-4 sets x 6-10 reps", defaultSets: 4 },
@@ -395,6 +397,13 @@
         let activeSetsTrackingMap = [];
         let timerInterval = null;
         let timerTargetEndTime = null; 
+        let saveTimeout = null;
+
+        // STORAGE PERSISTENCE DEBOUNCER
+        function debouncedSaveFormState() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveFormState, 500);
+        }
 
         function startTimer(seconds) {
             clearInterval(timerInterval);
@@ -518,7 +527,6 @@
 
         function renderWorkout(allowCachedLoad = true) {
             let type = document.getElementById('workoutType').value;
-            
             let cachedState = null;
             if (allowCachedLoad) {
                 const rawCache = localStorage.getItem('cachedFormState');
@@ -535,6 +543,8 @@
             loadCarriedOverGoals();
             calculateMetrics();
             activeSetsTrackingMap = [];
+
+            if (!workouts[type]) return;
 
             workouts[type].forEach((ex, exIdx) => {
                 let defaultSetsCount = ex.defaultSets;
@@ -586,15 +596,16 @@
         }
 
         function makeSetRowHtml(exIdx, setNum) {
+            // FIXED: Added predictive numerical/decimal input targets for efficient mobile keyboard parsing
             return `
                 <div class="set-row" id="ex_${exIdx}_row_${setNum}">
                     <span class="set-label">Set ${setNum}:</span>
                     <div class="input-group">
-                        <input type="number" step="0.25" id="ex_${exIdx}_w_${setNum}" placeholder="kg">
+                        <input type="number" step="0.25" id="ex_${exIdx}_w_${setNum}" inputmode="decimal" placeholder="kg">
                         <span>kg</span>
                     </div>
                     <div class="input-group">
-                        <input type="number" id="ex_${exIdx}_r_${setNum}" placeholder="reps">
+                        <input type="number" id="ex_${exIdx}_r_${setNum}" inputmode="numeric" placeholder="reps">
                         <span>reps</span>
                     </div>
                 </div>
@@ -610,7 +621,7 @@
             tempDiv.innerHTML = makeSetRowHtml(exIdx, nextSetNum);
             setsBox.appendChild(tempDiv.firstElementChild);
             activeSetsTrackingMap[exIdx] = nextSetNum;
-            saveFormState();
+            debouncedSaveFormState();
         }
 
         function removeSetFromExercise(exIdx) {
@@ -619,7 +630,7 @@
             const targetRow = document.getElementById(`ex_${exIdx}_row_${currentCount}`);
             if (targetRow) targetRow.remove();
             activeSetsTrackingMap[exIdx] = currentCount - 1;
-            saveFormState();
+            debouncedSaveFormState();
         }
 
         function saveFormState() {
@@ -642,17 +653,19 @@
                 cardioNotes: document.getElementById('cardioNotes').value
             };
 
-            workouts[type].forEach((ex, exIdx) => {
-                const totalSets = activeSetsTrackingMap[exIdx];
-                for(let s = 1; s <= totalSets; s++) {
-                    const wEl = document.getElementById(`ex_${exIdx}_w_${s}`);
-                    const rEl = document.getElementById(`ex_${exIdx}_r_${s}`);
-                    if(wEl) stateObj.inputValues[`ex_${exIdx}_w_${s}`] = wEl.value;
-                    if(rEl) stateObj.inputValues[`ex_${exIdx}_r_${s}`] = rEl.value;
-                }
-                const noteEl = document.getElementById(`ex_${exIdx}_note`);
-                if(noteEl) stateObj.inputValues[`ex_${exIdx}_note`] = noteEl.value;
-            });
+            if (workouts[type]) {
+                workouts[type].forEach((ex, exIdx) => {
+                    const totalSets = activeSetsTrackingMap[exIdx];
+                    for(let s = 1; s <= totalSets; s++) {
+                        const wEl = document.getElementById(`ex_${exIdx}_w_${s}`);
+                        const rEl = document.getElementById(`ex_${exIdx}_r_${s}`);
+                        if(wEl) stateObj.inputValues[`ex_${exIdx}_w_${s}`] = wEl.value;
+                        if(rEl) stateObj.inputValues[`ex_${exIdx}_r_${s}`] = rEl.value;
+                    }
+                    const noteEl = document.getElementById(`ex_${exIdx}_note`);
+                    if(noteEl) stateObj.inputValues[`ex_${exIdx}_note`] = noteEl.value;
+                });
+            }
 
             localStorage.setItem('cachedFormState', JSON.stringify(stateObj));
         }
@@ -705,17 +718,6 @@
             return stringOut;
         }
 
-        // STATIC WRITING LAYER (LOCKED NAME TO ENABLE SYSTEM-LEVEL OVERWRITING)
-        function executeAutoBackup() {
-            const currentFullRawJournal = localStorage.getItem('localGymJournal') || '[]';
-            const blob = new Blob([currentFullRawJournal], { type: 'text/plain' });
-            const link = document.createElement('a');
-            
-            link.download = `gym_journal_auto_backup.txt`;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-        }
-
         function saveWorkoutLog() {
             const dateValue = document.getElementById('logDate').value;
             const selectEl = document.getElementById('workoutType');
@@ -739,9 +741,7 @@
 
             localStorage.removeItem('cachedFormState');
 
-            executeAutoBackup();
-
-            alert("Session logged & backup replaced!");
+            alert("Session successfully logged!");
             calculateMetrics();
             renderWorkout(false); 
             switchView('history');
@@ -776,9 +776,7 @@
 
             localStorage.removeItem('cachedFormState');
 
-            executeAutoBackup();
-
-            alert("Cardio entry logged & backup replaced!");
+            alert("Cardio session logged!");
             
             document.getElementById('cardioDistance').value = '';
             document.getElementById('cardioStartTime').value = '';
@@ -820,7 +818,7 @@
 
         function toggleDetails(id) {
             const details = document.getElementById(`details_${id}`);
-            details.classList.toggle('open');
+            if (details) details.classList.toggle('open');
         }
 
         function deleteHistoryEntry(id) {
@@ -840,6 +838,33 @@
             return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         }
 
+        // FIXED: Re-engineered streak calculations to survive intentional rest days
+        function evaluateStreakEngine(logsArray, thresholdHours = 52) {
+            if (logsArray.length === 0) return 0;
+            
+            const uniqueTimestamps = [...new Set(logsArray.map(e => new Date(e.date).getTime()))]
+                                          .sort((a, b) => b - a);
+
+            const latestLogTime = uniqueTimestamps[0];
+            const modernTimeMidnight = new Date().setHours(0,0,0,0);
+            const varianceLimit = 1000 * 60 * 60 * thresholdHours; 
+
+            if ((modernTimeMidnight - latestLogTime) > varianceLimit) {
+                return 0;
+            }
+
+            let computedStreak = 1;
+            for (let i = 0; i < uniqueTimestamps.length - 1; i++) {
+                const gap = uniqueTimestamps[i] - uniqueTimestamps[i+1];
+                if (gap <= varianceLimit) {
+                    computedStreak++;
+                } else {
+                    break;
+                }
+            }
+            return computedStreak;
+        }
+
         function calculateMetrics() {
             const rawHistory = localStorage.getItem('localGymJournal');
             if(!rawHistory) return;
@@ -851,53 +876,8 @@
             document.getElementById('dashTotal').textContent = liftEntries.length;
             document.getElementById('dashCardioTotal').textContent = cardioEntries.length;
 
-            let liftStreak = 0;
-            if (liftEntries.length > 0) {
-                const uniqueLiftDates = [...new Set(liftEntries.map(e => e.date))].sort().reverse();
-                let targetDate = new Date();
-                let todayStr = targetDate.toISOString().split('T')[0];
-                targetDate.setDate(targetDate.getDate() - 1);
-                let yesterdayStr = targetDate.toISOString().split('T')[0];
-
-                if (uniqueLiftDates[0] === todayStr || uniqueLiftDates[0] === yesterdayStr) {
-                    liftStreak = 1;
-                    let checkDate = new Date(uniqueLiftDates[0]);
-                    for (let i = 1; i < uniqueLiftDates.length; i++) {
-                        checkDate.setDate(checkDate.getDate() - 1);
-                        let checkStr = checkDate.toISOString().split('T')[0];
-                        if (uniqueLiftDates[i] === checkStr) {
-                            liftStreak++;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-            document.getElementById('dashStreak').textContent = `${liftStreak}d`;
-
-            let cardioStreak = 0;
-            if (cardioEntries.length > 0) {
-                const uniqueCardioDates = [...new Set(cardioEntries.map(e => e.date))].sort().reverse();
-                let targetDate = new Date();
-                let todayStr = targetDate.toISOString().split('T')[0];
-                targetDate.setDate(targetDate.getDate() - 1);
-                let yesterdayStr = targetDate.toISOString().split('T')[0];
-
-                if (uniqueCardioDates[0] === todayStr || uniqueCardioDates[0] === yesterdayStr) {
-                    cardioStreak = 1;
-                    let checkDate = new Date(uniqueCardioDates[0]);
-                    for (let i = 1; i < uniqueCardioDates.length; i++) {
-                        checkDate.setDate(checkDate.getDate() - 1);
-                        let checkStr = checkDate.toISOString().split('T')[0];
-                        if (uniqueCardioDates[i] === checkStr) {
-                            cardioStreak++;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-            document.getElementById('dashCardioStreak').textContent = `${cardioStreak}d`;
+            document.getElementById('dashStreak').textContent = `${evaluateStreakEngine(liftEntries, 52)}d`;
+            document.getElementById('dashCardioStreak').textContent = `${evaluateStreakEngine(cardioEntries, 52)}d`;
         }
 
         function downloadBackupFile() {
@@ -909,7 +889,6 @@
             link.click();
         }
 
-        // Standard dynamic click hook
         function triggerImport() { document.getElementById('fileImport').click(); }
 
         function importBackupFile(event) {
