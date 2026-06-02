@@ -12,17 +12,18 @@
         
         /* Layout Tabs */
         .tab-system { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #2c2c2e; padding-bottom: 10px; }
-        .tab-btn { flex: 1; background: #1c1c1e; color: #aaa; border: 1px solid #2c2c2e; padding: 12px 6px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
+        .tab-btn { flex: 1; background: #1c1c1e; color: #aaa; border: 1px solid #2c2c2e; padding: 12px 6px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; text-align: center; white-space: nowrap; }
         .tab-btn.active { background: #ff4757; color: #fff; border-color: #ff4757; }
 
         /* Dashboard Metrics */
-        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .metric-card { background: #1e1e1e; border: 1px solid #2c2c2e; padding: 12px; border-radius: 10px; text-align: center; }
-        .metric-val { font-size: 18px; font-weight: bold; color: #ff4757; margin-bottom: 4px; }
-        .metric-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+        .metric-card { background: #1e1e1e; border: 1px solid #2c2c2e; padding: 10px 6px; border-radius: 10px; text-align: center; }
+        .metric-val { font-size: 16px; font-weight: bold; color: #ff4757; margin-bottom: 4px; }
+        .metric-lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* Form elements */
-        .meta-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .meta-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        .meta-row { display: flex; gap: 10px; }
         input, select, textarea { background: #1e1e1e; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
         label { display: block; margin-bottom: 5px; font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
         .workout-selector { margin-bottom: 25px; }
@@ -70,9 +71,11 @@
         /* Exercise Tips Design */
         .tips-container { display: flex; flex-direction: column; gap: 20px; }
         .tips-group { background: #1e1e1e; border-radius: 12px; padding: 15px; border-top: 3px solid #57606f; }
+        .tips-group.warmup-border { border-top-color: #341f97; }
         .tips-group.push-border { border-top-color: #ff4757; }
         .tips-group.pull-border { border-top-color: #ffa502; }
         .tips-group.legs-border { border-top-color: #2ed573; }
+        .tips-group.cardio-border { border-top-color: #00d2d3; }
         .group-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; text-transform: uppercase; color: #fff; border-bottom: 1px solid #2c2c2e; padding-bottom: 5px; }
         .tip-item { margin-bottom: 12px; }
         .tip-item:last-child { margin-bottom: 0; }
@@ -91,62 +94,77 @@
         #fileImport { display: none; }
     </style>
 </head>
-<body>
+<body oninput="saveFormState()" onchange="saveFormState()">
 
     <h1>Workout Tracker</h1>
     <h2>Custom 6-Day PPL & Local Log (Dynamic Sets)</h2>
 
-    <!-- REAL-TIME ANALYTICS DASHBOARD -->
     <div class="dashboard">
         <div class="metric-card">
             <div class="metric-val" id="dashTotal">0</div>
-            <div class="metric-lbl">Total Logs</div>
+            <div class="metric-lbl">Lift Logs</div>
         </div>
         <div class="metric-card">
-            <div class="metric-val" style="font-size:13px; padding-top:4px; color:#ffa502;" id="dashRatio">0/0/0</div>
-            <div class="metric-lbl">Push/Pull/Legs</div>
+            <div class="metric-val" id="dashCardioTotal" style="color: #00d2d3;">0</div>
+            <div class="metric-lbl">Cardio Logs</div>
         </div>
         <div class="metric-card">
             <div class="metric-val" style="color:#2ed573;" id="dashStreak">0d</div>
-            <div class="metric-lbl">Current Streak</div>
+            <div class="metric-lbl">Lift Streak</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-val" style="color:#00d2d3;" id="dashCardioStreak">0d</div>
+            <div class="metric-lbl">Cardio Stk</div>
         </div>
     </div>
 
     <div class="tab-system">
-        <button class="tab-btn active" id="tabTrack" onclick="switchView('track')">📝 Track</button>
+        <button class="tab-btn active" id="tabTrack" onclick="switchView('track')">📝 Weightlifting</button>
+        <button class="tab-btn" id="tabCardio" onclick="switchView('cardio')">🏃 Cardio</button>
         <button class="tab-btn" id="tabHistory" onclick="switchView('history')">📚 History</button>
         <button class="tab-btn" id="tabTips" onclick="switchView('tips')">💡 Guide</button>
     </div>
 
-    <!-- VIEW 1: TRACKING FORM -->
     <div id="trackView">
         <div class="meta-group">
-            <div style="flex: 2;">
-                <label for="logDate">Date</label>
-                <input type="date" id="logDate">
+            <div class="meta-row">
+                <div style="flex: 2;">
+                    <label for="logDate">Date</label>
+                    <input type="date" id="logDate">
+                </div>
+                <div style="flex: 1;">
+                    <label for="energy">Energy</label>
+                    <select id="energy">
+                        <option value="5">5/5 🔥</option>
+                        <option value="4" selected>4/5 👍</option>
+                        <option value="3">3/5 😐</option>
+                        <option value="2">2/5 🪫</option>
+                        <option value="1">1/5 ❌</option>
+                    </select>
+                </div>
             </div>
-            <div style="flex: 1;">
-                <label for="energy">Energy</label>
-                <select id="energy">
-                    <option value="5">5/5 🔥</option>
-                    <option value="4" selected>4/5 👍</option>
-                    <option value="3">3/5 😐</option>
-                    <option value="2">2/5 🪫</option>
-                    <option value="1">1/5 ❌</option>
-                </select>
+            
+            <div class="meta-row">
+                <div style="flex: 1;">
+                    <label for="startTime">Start Time</label>
+                    <input type="time" id="startTime">
+                </div>
+                <div style="flex: 1;">
+                    <label for="endTime">End Time</label>
+                    <input type="time" id="endTime">
+                </div>
             </div>
         </div>
 
         <div class="workout-selector">
             <label for="workoutType">Select Split Day</label>
-            <select id="workoutType" onchange="renderWorkout()">
+            <select id="workoutType" onchange="onWorkoutTypeChange()">
                 <option value="push">Day 1: PUSH (Chest / Shoulders / Tris)</option>
                 <option value="pull">Day 2: PULL (Back / Rear Delts / Bis)</option>
                 <option value="legs">Day 3: LEGS (Quads / Hams / Calves)</option>
             </select>
         </div>
 
-        <!-- TARGET BOX FOR PREVIOUS OBJECTIVES -->
         <div id="pastGoalsContainer" style="display:none;">
             <label>Directives Carried Over From Last Session</label>
             <div class="past-goals-box" id="pastGoalsDisplay"></div>
@@ -164,7 +182,63 @@
         </div>
     </div>
 
-    <!-- VIEW 2: LOG HISTORY -->
+    <div id="cardioView" style="display: none;">
+        <div class="meta-group">
+            <div class="meta-row">
+                <div style="flex: 2;">
+                    <label for="cardioDate">Date</label>
+                    <input type="date" id="cardioDate">
+                </div>
+                <div style="flex: 1;">
+                    <label for="cardioType">Activity</label>
+                    <select id="cardioType">
+                        <option value="Walk">Walk 🚶</option>
+                        <option value="Jog">Jog 🏃</option>
+                        <option value="Run">Run ⚡</option>
+                    </select>
+                </div>
+            </div>
+            <div class="meta-row">
+                <div style="flex: 1;">
+                    <label for="cardioStartTime">Start Time</label>
+                    <input type="time" id="cardioStartTime">
+                </div>
+                <div style="flex: 1;">
+                    <label for="cardioEndTime">End Time</label>
+                    <input type="time" id="cardioEndTime">
+                </div>
+            </div>
+        </div>
+
+        <div class="exercise-card" style="border-left-color: #00d2d3;">
+            <div class="exercise-header">
+                <span class="exercise-title">Volume metrics</span>
+            </div>
+            
+            <div class="set-row" style="margin-top: 15px;">
+                <span class="set-label" style="width: 75px;">Distance:</span>
+                <div class="input-group">
+                    <input type="number" step="0.01" id="cardioDistance" placeholder="0.00">
+                </div>
+                <div class="input-group" style="max-width: 90px;">
+                    <select id="cardioUnit">
+                        <option value="km">km</option>
+                        <option value="miles">miles</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="margin-top:15px;">
+                <label for="cardioNotes">Cardio Notes</label>
+                <input type="text" id="cardioNotes" placeholder="Route details, pacing, terrain conditions...">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" style="background: #00d2d3;" onclick="saveCardioLog()">💾 Save Cardio Entry</button>
+        </div>
+    </div>
+
     <div id="historyView" style="display: none;">
         <div class="history-control-panel">
             <div class="panel-row">
@@ -177,9 +251,19 @@
         <div id="historyContainer" class="history-list"></div>
     </div>
 
-    <!-- VIEW 3: EXERCISE TIPS REFERENCE -->
     <div id="tipsView" style="display: none;">
         <div class="tips-container">
+            <div class="tips-group warmup-border">
+                <div class="group-title" style="color: #341f97;">Warm-Up Protocols</div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Dynamic Range of Motion</span>
+                    <p class="tip-text">Avoid static stretching prior to heavy loading. Use arm circles, bodyweight lunges, and light band pull-aparts to introduce synovial fluid to working joints and raise baseline core temperature.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Pyramid Warm-Up Scheme</span>
+                    <p class="tip-text">When starting your primary lift, execute progressive warm-up sets: 50% of working weight for 5 reps, 70% for 3 reps, and 90% for 1 single clean rep. Never sprint directly into working load volumes.</p>
+                </div>
+            </div>
             
             <div class="tips-group push-border">
                 <div class="group-title" style="color: #ff4757;">Push Day Mechanics</div>
@@ -253,10 +337,20 @@
                 </div>
             </div>
 
+            <div class="tips-group cardio-border">
+                <div class="group-title" style="color: #00d2d3;">Cardio Optimization</div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Zone 2 Aerobic Base building</span>
+                    <p class="tip-text">Maintain a pace where you can comfortably sustain a conversation without gasping. Staying inside this biometric zone optimizes mitochondrial density, speeds metabolic fat utilization, and leaves lifting recovery uninterrupted.</p>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-ex-name">Pacing and Cadence Safety</span>
+                    <p class="tip-text">When running, aim for shorter, quick strides over over-striding. Lands mid-foot underneath your center of gravity to limit sheer knee impact forces. Keep a slight forward lean initiating from your ankles.</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- FLOATING REST TIMER MODULE -->
     <div class="timer-bar">
         <div style="display:flex; flex-direction:column;">
             <span style="font-size:10px; color:#aaa; text-transform:uppercase; font-weight:bold;">Rest Timer</span>
@@ -272,6 +366,7 @@
 
     <script>
         document.getElementById('logDate').valueAsDate = new Date();
+        document.getElementById('cardioDate').valueAsDate = new Date();
 
         const workouts = {
             push: [
@@ -297,56 +392,64 @@
             ]
         };
 
-        // Track how many sets are currently rendered for each exercise card at runtime
         let activeSetsTrackingMap = [];
-
-        // --- GLOBAL TIMER STATE ---
         let timerInterval = null;
+        let timerTargetEndTime = null; 
+
         function startTimer(seconds) {
             clearInterval(timerInterval);
             document.getElementById('timerClock').classList.remove('alerting');
             
-            let timeLeft = seconds;
-            updateTimerDisplay(timeLeft);
+            timerTargetEndTime = Date.now() + (seconds * 1000);
+            localStorage.setItem('timerTargetEndTime', timerTargetEndTime);
 
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateTimerDisplay(timeLeft);
+            runTimerTick();
+            timerInterval = setInterval(runTimerTick, 250); 
+        }
 
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('timerClock').textContent = "TIME UP";
-                    document.getElementById('timerClock').classList.add('alerting');
-                }
-            }, 1000);
+        function runTimerTick() {
+            if (!timerTargetEndTime) return;
+            const remainingMs = timerTargetEndTime - Date.now();
+            
+            if (remainingMs <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('timerClock').textContent = "TIME UP";
+                document.getElementById('timerClock').classList.add('alerting');
+                timerTargetEndTime = null;
+                localStorage.removeItem('timerTargetEndTime');
+            } else {
+                const totalSecs = Math.ceil(remainingMs / 1000);
+                const m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+                const s = (totalSecs % 60).toString().padStart(2, '0');
+                document.getElementById('timerClock').textContent = `${m}:${s}`;
+            }
         }
 
         function resetTimer() {
             clearInterval(timerInterval);
+            timerTargetEndTime = null;
+            localStorage.removeItem('timerTargetEndTime');
             document.getElementById('timerClock').classList.remove('alerting');
             document.getElementById('timerClock').textContent = "00:00";
         }
 
-        function updateTimerDisplay(secs) {
-            const m = Math.floor(secs / 60).toString().padStart(2, '0');
-            const s = (secs % 60).toString().padStart(2, '0');
-            document.getElementById('timerClock').textContent = `${m}:${s}`;
-        }
-
-        // --- CORE APPLICATION VIEWS & LOGIC ---
         function switchView(view) {
             document.getElementById('trackView').style.display = 'none';
+            document.getElementById('cardioView').style.display = 'none';
             document.getElementById('historyView').style.display = 'none';
             document.getElementById('tipsView').style.display = 'none';
             
             document.getElementById('tabTrack').className = 'tab-btn';
+            document.getElementById('tabCardio').className = 'tab-btn';
             document.getElementById('tabHistory').className = 'tab-btn';
             document.getElementById('tabTips').className = 'tab-btn';
 
             if (view === 'track') {
                 document.getElementById('trackView').style.display = 'block';
                 document.getElementById('tabTrack').className = 'tab-btn active';
-                renderWorkout(); 
+            } else if (view === 'cardio') {
+                document.getElementById('cardioView').style.display = 'block';
+                document.getElementById('tabCardio').className = 'tab-btn active';
             } else if (view === 'history') {
                 document.getElementById('historyView').style.display = 'block';
                 document.getElementById('tabHistory').className = 'tab-btn active';
@@ -357,18 +460,15 @@
             }
         }
 
-        // Deep scanner engine for extracting specific structural history lines
         function findPreviousPerformance(exerciseName) {
             const rawHistory = localStorage.getItem('localGymJournal');
             if(!rawHistory) return null;
             const entries = JSON.parse(rawHistory);
-            
             for(let entry of entries) {
                 if(entry.body && entry.body.includes(exerciseName)) {
                     const lines = entry.body.split('\n');
                     let performanceString = [];
                     let foundExercise = false;
-                    
                     for(let line of lines) {
                         if(line.trim().startsWith(exerciseName)) {
                             foundExercise = true;
@@ -394,23 +494,13 @@
             const rawHistory = localStorage.getItem('localGymJournal');
             const displayBox = document.getElementById('pastGoalsDisplay');
             const container = document.getElementById('pastGoalsContainer');
-            
-            if(!rawHistory) {
-                container.style.display = 'none';
-                return;
-            }
+            if(!rawHistory) { container.style.display = 'none'; return; }
             const entries = JSON.parse(rawHistory);
-            if(entries.length === 0) {
-                container.style.display = 'none';
-                return;
-            }
-
-            // Find the most recent entry that has clear listed goals
+            if(entries.length === 0) { container.style.display = 'none'; return; }
             for(let entry of entries) {
                 if(entry.body && entry.body.includes("Next Session Goals:\n")) {
                     const parts = entry.body.split("Next Session Goals:\n");
                     const savedGoals = parts[1] ? parts[1].trim() : "";
-                    
                     if(savedGoals && savedGoals !== "None listed.") {
                         displayBox.textContent = `[From ${formatDisplayDate(entry.date)}]: ${savedGoals}`;
                         container.style.display = 'block';
@@ -421,20 +511,39 @@
             container.style.display = 'none';
         }
 
-        function renderWorkout() {
-            const type = document.getElementById('workoutType').value;
+        function onWorkoutTypeChange() {
+            localStorage.removeItem('cachedFormState');
+            renderWorkout(false);
+        }
+
+        function renderWorkout(allowCachedLoad = true) {
+            let type = document.getElementById('workoutType').value;
+            
+            let cachedState = null;
+            if (allowCachedLoad) {
+                const rawCache = localStorage.getItem('cachedFormState');
+                if (rawCache) cachedState = JSON.parse(rawCache);
+            }
+
+            if (cachedState && cachedState.workoutType) {
+                type = cachedState.workoutType;
+                document.getElementById('workoutType').value = type;
+            }
+
             const container = document.getElementById('exerciseContainer');
             container.innerHTML = '';
-
             loadCarriedOverGoals();
             calculateMetrics();
-
             activeSetsTrackingMap = [];
 
             workouts[type].forEach((ex, exIdx) => {
-                // Set initial counter map bounds tracking arrays
-                activeSetsTrackingMap.push(ex.defaultSets);
-
+                let defaultSetsCount = ex.defaultSets;
+                if (cachedState && cachedState.setsMap && cachedState.setsMap[exIdx] !== undefined) {
+                    defaultSetsCount = cachedState.setsMap[exIdx];
+                }
+                
+                activeSetsTrackingMap.push(defaultSetsCount);
+                
                 let card = document.createElement('div');
                 card.className = 'exercise-card';
                 card.id = `ex_card_${exIdx}`;
@@ -450,31 +559,30 @@
                         <span class="exercise-target">${ex.target}</span>
                     </div>
                     ${pastPerformanceHtml}
-                    
-                    <!-- Dynamic Rows Container Box Wrap -->
                     <div id="ex_sets_box_${exIdx}">`;
 
-                for(let s = 1; s <= ex.defaultSets; s++) {
+                for(let s = 1; s <= defaultSetsCount; s++) {
                     html += makeSetRowHtml(exIdx, s);
                 }
 
                 html += `</div>
-                    
-                    <!-- Incremental Modifier Trigger Actions Line -->
                     <div class="set-actions">
                         <button class="action-link add" onclick="addSetToExercise(${exIdx})">[+ Add Set]</button>
                         <button class="action-link remove" onclick="removeSetFromExercise(${exIdx})">[- Remove Last]</button>
                     </div>
-
                     <div style="margin-top:10px;">
                         <input type="text" id="ex_${exIdx}_note" placeholder="Form notes or RIR targets...">
                     </div>
                 `;
-
                 card.innerHTML = html;
                 container.appendChild(card);
             });
-            document.getElementById('customGoals').value = '';
+
+            if (cachedState) {
+                applyCachedValuesToForm(cachedState);
+            } else {
+                document.getElementById('customGoals').value = '';
+            }
         }
 
         function makeSetRowHtml(exIdx, setNum) {
@@ -495,57 +603,100 @@
 
         function addSetToExercise(exIdx) {
             const currentCount = activeSetsTrackingMap[exIdx];
-            if (currentCount >= 10) {
-                alert("Dynamic maximum ceiling reached (Max 10 sets per individual lift structure).");
-                return;
-            }
-            
+            if (currentCount >= 10) { alert("Max limit hit."); return; }
             const nextSetNum = currentCount + 1;
             const setsBox = document.getElementById(`ex_sets_box_${exIdx}`);
-            
-            // Build temporary node container to safely append new markup string line
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = makeSetRowHtml(exIdx, nextSetNum);
             setsBox.appendChild(tempDiv.firstElementChild);
-            
             activeSetsTrackingMap[exIdx] = nextSetNum;
+            saveFormState();
         }
 
         function removeSetFromExercise(exIdx) {
             const currentCount = activeSetsTrackingMap[exIdx];
-            if (currentCount <= 1) {
-                alert("Minimum structural limit hit. Every exercise requires at least 1 set.");
-                return;
-            }
-            
+            if (currentCount <= 1) { alert("Minimum 1 set required."); return; }
             const targetRow = document.getElementById(`ex_${exIdx}_row_${currentCount}`);
-            if (targetRow) {
-                targetRow.remove();
-            }
-            
+            if (targetRow) targetRow.remove();
             activeSetsTrackingMap[exIdx] = currentCount - 1;
+            saveFormState();
+        }
+
+        function saveFormState() {
+            const type = document.getElementById('workoutType').value;
+            const stateObj = {
+                logDate: document.getElementById('logDate').value,
+                energy: document.getElementById('energy').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                workoutType: type,
+                customGoals: document.getElementById('customGoals').value,
+                setsMap: [...activeSetsTrackingMap],
+                inputValues: {},
+                cardioDate: document.getElementById('cardioDate').value,
+                cardioType: document.getElementById('cardioType').value,
+                cardioStartTime: document.getElementById('cardioStartTime').value,
+                cardioEndTime: document.getElementById('cardioEndTime').value,
+                cardioDistance: document.getElementById('cardioDistance').value,
+                cardioUnit: document.getElementById('cardioUnit').value,
+                cardioNotes: document.getElementById('cardioNotes').value
+            };
+
+            workouts[type].forEach((ex, exIdx) => {
+                const totalSets = activeSetsTrackingMap[exIdx];
+                for(let s = 1; s <= totalSets; s++) {
+                    const wEl = document.getElementById(`ex_${exIdx}_w_${s}`);
+                    const rEl = document.getElementById(`ex_${exIdx}_r_${s}`);
+                    if(wEl) stateObj.inputValues[`ex_${exIdx}_w_${s}`] = wEl.value;
+                    if(rEl) stateObj.inputValues[`ex_${exIdx}_r_${s}`] = rEl.value;
+                }
+                const noteEl = document.getElementById(`ex_${exIdx}_note`);
+                if(noteEl) stateObj.inputValues[`ex_${exIdx}_note`] = noteEl.value;
+            });
+
+            localStorage.setItem('cachedFormState', JSON.stringify(stateObj));
+        }
+
+        function applyCachedValuesToForm(cachedState) {
+            if(cachedState.logDate) document.getElementById('logDate').value = cachedState.logDate;
+            if(cachedState.energy) document.getElementById('energy').value = cachedState.energy;
+            if(cachedState.startTime) document.getElementById('startTime').value = cachedState.startTime;
+            if(cachedState.endTime) document.getElementById('endTime').value = cachedState.endTime;
+            if(cachedState.customGoals) document.getElementById('customGoals').value = cachedState.customGoals;
+
+            for (const [id, val] of Object.entries(cachedState.inputValues || {})) {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            }
+
+            if(cachedState.cardioDate) document.getElementById('cardioDate').value = cachedState.cardioDate;
+            if(cachedState.cardioType) document.getElementById('cardioType').value = cachedState.cardioType;
+            if(cachedState.cardioStartTime) document.getElementById('cardioStartTime').value = cachedState.cardioStartTime;
+            if(cachedState.cardioEndTime) document.getElementById('cardioEndTime').value = cachedState.cardioEndTime;
+            if(cachedState.cardioDistance) document.getElementById('cardioDistance').value = cachedState.cardioDistance;
+            if(cachedState.cardioUnit) document.getElementById('cardioUnit').value = cachedState.cardioUnit;
+            if(cachedState.cardioNotes) document.getElementById('cardioNotes').value = cachedState.cardioNotes;
         }
 
         function generatePlainString() {
             const type = document.getElementById('workoutType').value;
             const energy = document.getElementById('energy').value;
+            const start = document.getElementById('startTime').value || '--:--';
+            const end = document.getElementById('endTime').value || '--:--';
             const userGoals = document.getElementById('customGoals').value;
 
-            let stringOut = `Energy Rating: ${energy}/5\n\n`;
+            let stringOut = `Energy Rating: ${energy}/5 | Session Duration: ${start} to ${end}\n\n`;
 
             workouts[type].forEach((ex, exIdx) => {
                 stringOut += `${ex.name}\n`;
                 const activeTotalSets = activeSetsTrackingMap[exIdx];
-                
                 for(let s = 1; s <= activeTotalSets; s++) {
                     const w = document.getElementById(`ex_${exIdx}_w_${s}`).value || '0';
                     const r = document.getElementById(`ex_${exIdx}_r_${s}`).value || '0';
                     stringOut += `  Set ${s}: ${w} kg x ${r} reps\n`;
                 }
                 const note = document.getElementById(`ex_${exIdx}_note`).value;
-                if(note) {
-                    stringOut += `  Note: ${note}\n`;
-                }
+                if(note) stringOut += `  Note: ${note}\n`;
                 stringOut += `\n`;
             });
 
@@ -554,210 +705,256 @@
             return stringOut;
         }
 
+        // STATIC WRITING LAYER (LOCKED NAME TO ENABLE SYSTEM-LEVEL OVERWRITING)
+        function executeAutoBackup() {
+            const currentFullRawJournal = localStorage.getItem('localGymJournal') || '[]';
+            const blob = new Blob([currentFullRawJournal], { type: 'text/plain' });
+            const link = document.createElement('a');
+            
+            link.download = `gym_journal_auto_backup.txt`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
         function saveWorkoutLog() {
             const dateValue = document.getElementById('logDate').value;
             const selectEl = document.getElementById('workoutType');
             const typeText = selectEl.options[selectEl.selectedIndex].text.split('(')[0].trim();
             const compiledText = generatePlainString();
 
-            if(!dateValue) {
-                alert("Please select a date first!");
-                return;
-            }
+            if(!dateValue) { alert("Please select a date first!"); return; }
 
             const newRecord = {
                 id: Date.now(),
                 date: dateValue,
+                isCardio: false,
                 label: typeText,
                 body: compiledText
             };
 
             let rawHistory = localStorage.getItem('localGymJournal');
             let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
-            
             historyArray.unshift(newRecord); 
             localStorage.setItem('localGymJournal', JSON.stringify(historyArray));
 
-            alert("Session successfully logged!");
+            localStorage.removeItem('cachedFormState');
+
+            executeAutoBackup();
+
+            alert("Session logged & backup replaced!");
             calculateMetrics();
+            renderWorkout(false); 
+            switchView('history');
+        }
+
+        function saveCardioLog() {
+            const dateValue = document.getElementById('cardioDate').value;
+            const type = document.getElementById('cardioType').value;
+            const distance = document.getElementById('cardioDistance').value || '0';
+            const unit = document.getElementById('cardioUnit').value;
+            const start = document.getElementById('cardioStartTime').value || '--:--';
+            const end = document.getElementById('cardioEndTime').value || '--:--';
+            const notes = document.getElementById('cardioNotes').value;
+
+            if(!dateValue) { alert("Please select a date!"); return; }
+
+            let compiledText = `${type} Session\n  Time window: ${start} to ${end}\n  Distance: ${distance} ${unit}\n`;
+            if(notes) compiledText += `  Notes: ${notes}`;
+
+            const newRecord = {
+                id: Date.now(),
+                date: dateValue,
+                isCardio: true,
+                label: `🏃 ${type}`,
+                body: compiledText
+            };
+
+            let rawHistory = localStorage.getItem('localGymJournal');
+            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+            historyArray.unshift(newRecord);
+            localStorage.setItem('localGymJournal', JSON.stringify(historyArray));
+
+            localStorage.removeItem('cachedFormState');
+
+            executeAutoBackup();
+
+            alert("Cardio entry logged & backup replaced!");
+            
+            document.getElementById('cardioDistance').value = '';
+            document.getElementById('cardioStartTime').value = '';
+            document.getElementById('cardioEndTime').value = '';
+            document.getElementById('cardioNotes').value = '';
+            
+            calculateMetrics();
+            renderWorkout(false);
             switchView('history');
         }
 
         function loadHistory() {
             const container = document.getElementById('historyContainer');
             container.innerHTML = '';
-            
-            let rawHistory = localStorage.getItem('localGymJournal');
-            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
-
-            if(historyArray.length === 0) {
-                container.innerHTML = '<div class="empty-state">No saved entries found. Log a session to start your journal!</div>';
+            const rawHistory = localStorage.getItem('localGymJournal');
+            if(!rawHistory || JSON.parse(rawHistory).length === 0) {
+                container.innerHTML = '<div class="empty-state">No recorded gym sessions found in local browser storage.</div>';
                 return;
             }
-
-            historyArray.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'history-item';
-                
-                itemDiv.innerHTML = `
-                    <div class="history-summary" onclick="toggleDetails(${item.id})">
+            const entries = JSON.parse(rawHistory);
+            entries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-summary" onclick="toggleDetails(${entry.id})">
                         <div>
-                            <span class="history-date">${formatDisplayDate(item.date)}</span>
-                            <span style="margin: 0 8px; color: #444;">•</span>
-                            <span class="history-type">${item.label}</span>
+                            <span class="history-date">${formatDisplayDate(entry.date)}</span>
+                            <div class="history-type">${entry.label}</div>
                         </div>
-                        <span style="color:#666; font-size:12px;">🔻 View Data</span>
+                        <span style="color:#666; font-size:12px;">▼ Toggle</span>
                     </div>
-                    <div id="details_${item.id}" class="history-details">${item.body}<br><button class="delete-btn" onclick="deleteItem(${item.id}, event)">Delete Entry</button>
+                    <div class="history-details" id="details_${entry.id}">${entry.body}
+                        <br><button class="delete-btn" onclick="deleteHistoryEntry(${entry.id})">Delete Entry</button>
                     </div>
                 `;
-                container.appendChild(itemDiv);
+                container.appendChild(item);
             });
         }
 
         function toggleDetails(id) {
-            const target = document.getElementById(`details_${id}`);
-            target.classList.toggle('open');
+            const details = document.getElementById(`details_${id}`);
+            details.classList.toggle('open');
         }
 
-        function deleteItem(id, event) {
-            event.stopPropagation(); 
-            if(!confirm("Are you sure you want to permanently erase this entry?")) return;
-            
-            let rawHistory = localStorage.getItem('localGymJournal');
-            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
-            
-            historyArray = historyArray.filter(item => item.id !== id);
-            localStorage.setItem('localGymJournal', JSON.stringify(historyArray));
+        function deleteHistoryEntry(id) {
+            if(!confirm("Are you sure you want to permanently delete this entry?")) return;
+            let entries = JSON.parse(localStorage.getItem('localGymJournal') || '[]');
+            entries = entries.filter(e => e.id !== id);
+            localStorage.setItem('localGymJournal', JSON.stringify(entries));
             loadHistory();
             calculateMetrics();
+        }
+
+        function formatDisplayDate(dateStr) {
+            if(!dateStr) return "";
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
+            const dateObj = new Date(parts[0], parts[1]-1, parts[2]);
+            return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         }
 
         function calculateMetrics() {
-            let rawHistory = localStorage.getItem('localGymJournal');
-            let historyArray = rawHistory ? JSON.parse(rawHistory) : [];
+            const rawHistory = localStorage.getItem('localGymJournal');
+            if(!rawHistory) return;
+            const entries = JSON.parse(rawHistory);
             
-            document.getElementById('dashTotal').textContent = historyArray.length;
+            const liftEntries = entries.filter(e => e.isCardio !== true);
+            const cardioEntries = entries.filter(e => e.isCardio === true);
 
-            let pushCount = 0, pullCount = 0, legsCount = 0;
-            historyArray.forEach(item => {
-                const text = item.label.toLowerCase();
-                if(text.includes('push')) pushCount++;
-                else if(text.includes('pull')) pullCount++;
-                else if(text.includes('legs')) legsCount++;
-            });
-            document.getElementById('dashRatio').textContent = `${pushCount}/${pullCount}/${legsCount}`;
+            document.getElementById('dashTotal').textContent = liftEntries.length;
+            document.getElementById('dashCardioTotal').textContent = cardioEntries.length;
 
-            if(historyArray.length === 0) {
-                document.getElementById('dashStreak').textContent = "0d";
-                return;
-            }
+            let liftStreak = 0;
+            if (liftEntries.length > 0) {
+                const uniqueLiftDates = [...new Set(liftEntries.map(e => e.date))].sort().reverse();
+                let targetDate = new Date();
+                let todayStr = targetDate.toISOString().split('T')[0];
+                targetDate.setDate(targetDate.getDate() - 1);
+                let yesterdayStr = targetDate.toISOString().split('T')[0];
 
-            let uniqueDates = [...new Set(historyArray.map(item => item.date))];
-            uniqueDates.sort((a,b) => new Date(b) - new Date(a)); 
-
-            let streak = 0;
-            let today = new Date();
-            today.setHours(0,0,0,0);
-            
-            let latestWorkoutDate = new Date(uniqueDates[0]);
-            latestWorkoutDate.setHours(0,0,0,0);
-
-            let msDiff = today - latestWorkoutDate;
-            let daysSinceLastWorkout = msDiff / (1000 * 60 * 60 * 24);
-
-            if(daysSinceLastWorkout <= 2) { 
-                streak = 1;
-                for(let i = 0; i < uniqueDates.length - 1; i++) {
-                    let dateCurrent = new Date(uniqueDates[i]);
-                    let dateNext = new Date(uniqueDates[i+1]);
-                    dateCurrent.setHours(0,0,0,0);
-                    dateNext.setHours(0,0,0,0);
-
-                    let diffTime = dateCurrent - dateNext;
-                    let diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-                    if(diffDays <= 2) {
-                        streak++;
-                    } else {
-                        break;
+                if (uniqueLiftDates[0] === todayStr || uniqueLiftDates[0] === yesterdayStr) {
+                    liftStreak = 1;
+                    let checkDate = new Date(uniqueLiftDates[0]);
+                    for (let i = 1; i < uniqueLiftDates.length; i++) {
+                        checkDate.setDate(checkDate.getDate() - 1);
+                        let checkStr = checkDate.toISOString().split('T')[0];
+                        if (uniqueLiftDates[i] === checkStr) {
+                            liftStreak++;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
-            document.getElementById('dashStreak').textContent = `${streak}d`;
-        }
+            document.getElementById('dashStreak').textContent = `${liftStreak}d`;
 
-        function clearEntireDatabase() {
-            if(!confirm("CRITICAL WARNING:\nThis will permanently destroy ALL workout entries saved in this browser. Are you absolutely certain?")) return;
-            localStorage.removeItem('localGymJournal');
-            calculateMetrics();
-            loadHistory();
+            let cardioStreak = 0;
+            if (cardioEntries.length > 0) {
+                const uniqueCardioDates = [...new Set(cardioEntries.map(e => e.date))].sort().reverse();
+                let targetDate = new Date();
+                let todayStr = targetDate.toISOString().split('T')[0];
+                targetDate.setDate(targetDate.getDate() - 1);
+                let yesterdayStr = targetDate.toISOString().split('T')[0];
+
+                if (uniqueCardioDates[0] === todayStr || uniqueCardioDates[0] === yesterdayStr) {
+                    cardioStreak = 1;
+                    let checkDate = new Date(uniqueCardioDates[0]);
+                    for (let i = 1; i < uniqueCardioDates.length; i++) {
+                        checkDate.setDate(checkDate.getDate() - 1);
+                        let checkStr = checkDate.toISOString().split('T')[0];
+                        if (uniqueCardioDates[i] === checkStr) {
+                            cardioStreak++;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            document.getElementById('dashCardioStreak').textContent = `${cardioStreak}d`;
         }
 
         function downloadBackupFile() {
-            let rawHistory = localStorage.getItem('localGymJournal');
-            if(!rawHistory || JSON.parse(rawHistory).length === 0) {
-                alert("Your journal is empty! Nothing to back up.");
-                return;
-            }
-
-            const blob = new Blob([rawHistory], { type: 'text/plain' });
-            const tempLink = document.createElement('a');
-            tempLink.download = `ppl_journal_backup_kg.txt`;
-            tempLink.href = window.URL.createObjectURL(blob);
-            tempLink.style.display = 'none';
-            document.body.appendChild(tempLink);
-            tempLink.click();
-            document.body.removeChild(tempLink);
+            const raw = localStorage.getItem('localGymJournal') || '[]';
+            const blob = new Blob([raw], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.download = `gym_journal_backup_${new Date().toISOString().split('T')[0]}.txt`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
         }
 
-        function triggerImport() {
-            document.getElementById('fileImport').click();
-        }
+        // Standard dynamic click hook
+        function triggerImport() { document.getElementById('fileImport').click(); }
 
         function importBackupFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
-                const contents = e.target.result;
                 try {
-                    const parsedData = JSON.parse(contents);
-                    if (!Array.isArray(parsedData)) throw new Error();
-
-                    if(confirm(`Found ${parsedData.length} workout logs in this file. Would you like to merge them with your current browser history?`)) {
-                        let existingRaw = localStorage.getItem('localGymJournal');
-                        let existingArray = existingRaw ? JSON.parse(existingRaw) : [];
-                        
-                        let mergedMap = new Map();
-                        existingArray.forEach(item => mergedMap.set(item.id, item));
-                        parsedData.forEach(item => mergedMap.set(item.id, item));
-                        
-                        let finalMergedArray = Array.from(mergedMap.values());
-                        finalMergedArray.sort((a, b) => b.id - a.id);
-
-                        localStorage.setItem('localGymJournal', JSON.stringify(finalMergedArray));
-                        alert("Data backup successfully restored and merged!");
+                    const parsed = JSON.parse(e.target.result);
+                    if (Array.isArray(parsed)) {
+                        localStorage.setItem('localGymJournal', JSON.stringify(parsed));
+                        alert("Database backup successfully restored!");
                         calculateMetrics();
-                        loadHistory();
+                        if(document.getElementById('historyView').style.display === 'block') loadHistory();
+                    } else {
+                        alert("Invalid backup file format structure.");
                     }
-                } catch (err) {
-                    alert("Error: This file is invalid or corrupted. Make sure you select an untouched backup file.");
+                } catch(err) {
+                    alert("Failed to read data file context parameters.");
                 }
             };
             reader.readAsText(file);
-            event.target.value = '';
         }
 
-        function formatDisplayDate(dateStr) {
-            if(!dateStr) return '';
-            const parts = dateStr.split('-');
-            return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+        function clearEntireDatabase() {
+            if(confirm("DANGER! This action will wipe all local data records permanently. Proceed?")) {
+                localStorage.removeItem('localGymJournal');
+                localStorage.removeItem('cachedFormState');
+                alert("App memory reset complete.");
+                calculateMetrics();
+                renderWorkout(false);
+            }
         }
 
-        renderWorkout();
-        calculateMetrics();
+        const savedTimerEnd = localStorage.getItem('timerTargetEndTime');
+        if (savedTimerEnd) {
+            timerTargetEndTime = parseInt(savedTimerEnd, 10);
+            if (timerTargetEndTime > Date.now()) {
+                timerInterval = setInterval(runTimerTick, 250);
+            } else {
+                localStorage.removeItem('timerTargetEndTime');
+            }
+        }
+
+        renderWorkout(true);
     </script>
 </body>
 </html>
